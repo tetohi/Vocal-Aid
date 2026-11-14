@@ -307,6 +307,7 @@ namespace Rap.Studio
             AddNav(list, "home", "检测台", Icons.Radar());
             AddNav(list, "record", "录制", Icons.Video());
             AddNav(list, "lyric", "台词", Icons.Lyrics());
+            if (AppInfo.IsPro) AddNav(list, "crawler", "爬虫", Icons.Radar());
             AddNav(list, "settings", "设置", Icons.Sliders());
             AddNav(list, "about", "关于", Icons.Info());
             g.Children.Add(list);
@@ -394,6 +395,9 @@ namespace Rap.Studio
                 case "lyric":
                     Lyric = new PageLyric(Host);
                     page = Lyric;
+                    break;
+                case "crawler":
+                    page = new PageCrawler(Host);
                     break;
                 case "settings":
                     Settings = new PageSettings(Host);

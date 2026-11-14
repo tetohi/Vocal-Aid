@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Rap.Studio
 {
-    /// <summary>应用标识与版本信息（开源版 / 自用版由编译符号 EDITION_PRO 区分）。</summary>
+    /// <summary>应用标识与版本信息（标准版 / 自用版由编译符号 EDITION_PRO 区分）。</summary>
     public static class AppInfo
     {
         public const string DisplayName = "说唱主播助手";
@@ -18,7 +18,7 @@ namespace Rap.Studio
         public const string Channel = "PRO";
 #else
         public const bool IsPro = false;
-        public const string Edition = "开源版";
+        public const string Edition = "标准版";
         public const string Version = "1.0.0";
         public const int MaxFpsLimit = 15;
         public const string Channel = "OPEN";

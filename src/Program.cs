@@ -76,6 +76,14 @@ namespace Rap.Studio
                 return;
             }
 
+            if (HasArg(args, "--crawl") && args.Length > 1)
+            {
+                string outFile = Path.Combine(Path.GetTempPath(), "crawl_test.txt");
+                try { File.WriteAllText(outFile, Crawler.Go(args[args.Length - 1], 0), new System.Text.UTF8Encoding(true)); }
+                catch (Exception ex) { File.WriteAllText(outFile, "ERR " + ex.Message, new System.Text.UTF8Encoding(true)); }
+                Environment.Exit(0);
+            }
+            System.Net.ServicePointManager.SecurityProtocol = (System.Net.SecurityProtocolType)3072;
             Application app = new Application();
             app.ShutdownMode = ShutdownMode.OnLastWindowClose;
             Ui.D = Dispatcher.CurrentDispatcher;
@@ -126,8 +134,15 @@ namespace Rap.Studio
 
             MainWindow win = new MainWindow(host);
             host.Window = win;
-            // 空闲期先把台词引擎拉起来，点开始检测后第一次字幕不再等 PowerShell 冷启动
-            try { host.Session.PrepareLyric(); } catch { }
+            // 台词引擎延后 1.2 秒再预热，先把首帧渲染让出来，启动更跟手
+            Thread warm = new Thread(delegate()
+            {
+                Thread.Sleep(1200);
+                try { host.Session.PrepareLyric(); } catch { }
+            });
+            warm.IsBackground = true;
+            warm.Name = "ocr-warm";
+            warm.Start();
             if (HasArg(args, "--selftest")) RunSelfTest(host);
             if (HasArg(args, "--shot")) RunShots(win);
             app.Run(win);

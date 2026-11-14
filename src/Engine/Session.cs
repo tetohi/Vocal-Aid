@@ -547,7 +547,7 @@ namespace Rap.Studio.Engine
                     }
                     if (hwnd == IntPtr.Zero) { Thread.Sleep(600); continue; }
 
-                    Bitmap frame = WindowCapturer.Capture(hwnd, 1600);
+                    Bitmap frame = WindowCapturer.Capture(hwnd, 1200);
                     if (frame != null)
                     {
                         using (Bitmap crop = SubtitleCropper.Crop(frame, _cfg.OcrRegion))

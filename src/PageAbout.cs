@@ -122,11 +122,11 @@ namespace Rap.Studio
             if (AppInfo.IsPro)
             {
                 es.Children.Add(Bullet("自用版：完整的私有构建，帧率上限 60fps，支持台词纠错词典与更高画面宽度。"));
-                es.Children.Add(Bullet("开源版：同一套源码的公开构建，帧率上限 15fps，不含私有增强项。"));
+                es.Children.Add(Bullet("标准版：同一套源码的公开构建，帧率上限 15fps，不含私有增强项。"));
             }
             else
             {
-                es.Children.Add(Bullet("开源版：基于同一套源码的公开构建，可用于二次开发与分发。"));
+                es.Children.Add(Bullet("标准版：基于同一套源码的公开构建，可用于二次开发与分发。"));
                 es.Children.Add(Bullet("自用版：私有构建，解锁 60fps 采集、台词纠错词典等增强功能。"));
             }
             es.Children.Add(Bullet("两版共用同一份检测与录制内核，配置文件互不冲突。"));
