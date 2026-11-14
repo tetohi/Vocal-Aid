@@ -14,23 +14,20 @@
 4. **台词**：PowerShell 投影 WinRT `OcrEngine` 识别字幕区域文字；背景取画面主色，渐变填充。
 5. 以上全部只在点击「开始检测」后启动。
 
-## 两个版本
+## 版本
 
 | 版本 | 定义 | 版本号 | 帧率上限 |
 |---|---|---|---|
 | 开源版 | 默认 | v1.0.0 | 15 |
-| 自用版 | `/define:EDITION_PRO` | v1.2.0 | 60 |
 
 ## 编译
 
 ```powershell
 # 开源版
 .\build.ps1 -Edition open
-# 自用版
-.\build.ps1 -Edition pro
 ```
 
-输出到 `build\说唱主播助手_开源版.exe` / `build\说唱主播助手_自用版.exe`。
+输出到 `build\说唱主播助手_开源版.exe`。
 脚本使用 `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`，`assets\app.ico` 存在时自动嵌入图标。
 
 ## 目录结构
