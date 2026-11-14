@@ -99,7 +99,7 @@ namespace VocalAid.Setup
                 {
                     Trace.Write("下载源：" + u);
                     if (log != null) log("连接：" + u);
-                    Download(u, tmp, onProgress);
+                    Download(AntiCache(u), tmp, onProgress);
                     FileInfo fi = new FileInfo(tmp);
                     Trace.Write("已下载 " + fi.Length + "B");
                     if (fi.Length < 20000) throw new Exception("文件过小：" + fi.Length + "B");
@@ -114,6 +114,12 @@ namespace VocalAid.Setup
                 }
             }
             throw new Exception("下载失败：" + (last == null ? "未知原因" : last.Message));
+        }
+
+        private static string AntiCache(string u)
+        {
+            if (u.IndexOf("codeload.", StringComparison.OrdinalIgnoreCase) < 0) return u;
+            return u + (u.IndexOf("?") < 0 ? "?" : "&") + "nc=" + DateTime.Now.Ticks;
         }
 
         public static bool Extract(string zipPath, string root, Action<string> log)
