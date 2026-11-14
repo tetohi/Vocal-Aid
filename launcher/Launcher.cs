@@ -201,6 +201,7 @@ namespace VocalAid.Setup
         private TextBox _log;
         private Button _main;
         private TextBlock _state;
+        private CheckBox _autoRun;
 
         public Win()
         {
@@ -360,6 +361,15 @@ namespace VocalAid.Setup
             btns.Children.Add(relink);
             root.Children.Add(btns);
 
+            _autoRun = new CheckBox();
+            _autoRun.Content = "下载安装完成后自动启动程序，并关闭本引导";
+            _autoRun.IsChecked = true;
+            _autoRun.FontSize = 12;
+            _autoRun.Foreground = B("#1F2328");
+            _autoRun.Margin = new Thickness(2, 12, 0, 0);
+            _autoRun.Cursor = System.Windows.Input.Cursors.Hand;
+            root.Children.Add(_autoRun);
+
             _log = new TextBox();
             _log.IsReadOnly = true;
             _log.AcceptsReturn = true;
@@ -413,6 +423,24 @@ namespace VocalAid.Setup
             _log.ScrollToEnd();
         }
 
+        private void LaunchAndQuit()
+        {
+            try
+            {
+                string exe = Path.Combine(Cfg.Root(), Cfg.FileName);
+                if (File.Exists(exe))
+                {
+                    ProcessStartInfo psi = new ProcessStartInfo(exe);
+                    psi.WorkingDirectory = Cfg.Root();
+                    psi.UseShellExecute = true;
+                    Process.Start(psi);
+                    Trace.Write("已启动程序：" + exe);
+                }
+            }
+            catch (Exception ex) { Trace.Write("启动程序失败：" + ex.Message); }
+            Dispatcher.BeginInvoke(new Action(delegate { Close(); }));
+        }
+
         private void StartInstall()
         {
             _main.IsEnabled = false;
@@ -444,9 +472,10 @@ namespace VocalAid.Setup
                         _bar.Value = 100;
                         Refresh();
                         Note("安装完成");
-                        _status.Text = "安装完成，可从桌面快捷方式启动";
+                        _status.Text = "安装完成，正在启动程序…";
                         _main.Content = "重新下载";
                         _main.IsEnabled = true;
+                        if (_autoRun.IsChecked == true) LaunchAndQuit();
                     }));
                 }
                 catch (Exception ex)
