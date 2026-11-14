@@ -1,0 +1,9 @@
+build/
+*.exe
+*.pdb
+*.obj
+*.user
+*.log
+probe/
+.obsidian/
+.DS_Store
