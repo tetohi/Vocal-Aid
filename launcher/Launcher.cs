@@ -190,7 +190,6 @@ namespace VocalAid.Setup
         {
             string root = Cfg.Root();
             Link("说唱主播助手", Path.Combine(root, Cfg.FileName), "说唱主播助手 v" + Cfg.Version);
-            Link("说唱主播助手 · 下载引导", Path.Combine(root, Cfg.SelfName), "下载与安装引导");
         }
     }
 
