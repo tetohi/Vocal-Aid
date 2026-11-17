@@ -23,7 +23,7 @@ namespace VocalAid.Setup
             "https://codeload.github.com/tetohi/Vocal-Aid/zip/refs/tags/v1.2.0"
         };
         public const string FileName = "说唱主播助手.exe";
-        public const string SelfName = "说唱主播助手_下载引导.exe";
+        public const string SelfName = "Vocal-Aid_Launcher_v1.0.1.exe";
         public const string FixerName = "蓝牙延迟修正器.exe";
         public const string HomeUrl = "https://github.com/tetohi/Vocal-Aid";
         public static readonly string[] FixerMirrors = new string[]

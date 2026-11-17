@@ -1,5 +1,5 @@
 param(
-    [string]$OutName = "说唱主播助手_下载引导"
+    [string]$OutName = "Vocal-Aid_Launcher_v1.0.1"
 )
 $ErrorActionPreference = "Stop"
 $root = "C:\Users\wly\Doubao\chats\2026-11-14\new-chat\RapStreamerTool"
