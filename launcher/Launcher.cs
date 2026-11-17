@@ -26,6 +26,11 @@ namespace VocalAid.Setup
         public const string SelfName = "说唱主播助手_下载引导.exe";
         public const string FixerName = "蓝牙延迟修正器.exe";
         public const string HomeUrl = "https://github.com/tetohi/Vocal-Aid";
+        public static readonly string[] FixerMirrors = new string[]
+        {
+            "https://codeload.github.com/tetohi/Vocal-Aid/zip/refs/heads/bt-assets",
+            "https://api.github.com/repos/tetohi/Vocal-Aid/zipball/bt-assets"
+        };
 
         public static string Root()
         {
@@ -91,6 +96,32 @@ namespace VocalAid.Setup
             }
         }
 
+        public static string FetchFixer(Action<long, long> onProgress, Action<string> log)
+        {
+            Exception last = null;
+            string tmp = Path.Combine(Path.GetTempPath(), "vocalaid_bt_" + DateTime.Now.Ticks + ".zip");
+            foreach (string u in Cfg.FixerMirrors)
+            {
+                try
+                {
+                    Trace.Write("修正器下载源：" + u);
+                    if (log != null) log("连接修正器源：" + u);
+                    Download(AntiCache(u), tmp, onProgress);
+                    FileInfo fi = new FileInfo(tmp);
+                    Trace.Write("修正器已下载 " + fi.Length + "B");
+                    if (fi.Length < 1000000) throw new Exception("文件过小：" + fi.Length + "B");
+                    return tmp;
+                }
+                catch (Exception ex)
+                {
+                    last = ex;
+                    Trace.Write("修正器源失败：" + ex.Message);
+                    try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+                }
+            }
+            throw new Exception("修正器下载失败：" + (last == null ? "未知原因" : last.Message));
+        }
+
         public static string FetchZip(Action<long, long> onProgress, Action<string> log)
         {
             Exception last = null;
@@ -131,7 +162,7 @@ namespace VocalAid.Setup
                 || name.IndexOf("Delay", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public static bool Extract(string zipPath, string root, Action<string> log, bool includeFixer)
+        public static bool Extract(string zipPath, string root, Action<string> log)
         {
             bool ok = false;
             using (ZipArchive za = ZipFile.OpenRead(zipPath))
@@ -146,15 +177,8 @@ namespace VocalAid.Setup
                     if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                     {
                         if (name.IndexOf("Pro", StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                        if (IsFixer(name))
-                        {
-                            if (!includeFixer) { Trace.Write("跳过可选组件：" + name); continue; }
-                            target = Path.Combine(root, Cfg.FixerName);
-                        }
-                        else
-                        {
-                            target = Path.Combine(root, Cfg.FileName);
-                        }
+                        if (IsFixer(name)) continue;
+                        target = Path.Combine(root, Cfg.FileName);
                     }
                     else if (name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
                     {
@@ -165,6 +189,29 @@ namespace VocalAid.Setup
                     Trace.Write("已写入 " + target);
                     if (log != null) log("已写入：" + target);
                     if (target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ok = true;
+                }
+            }
+            return ok;
+        }
+
+        /// <summary>单独从可选组件分支解压蓝牙延迟修正器。</summary>
+        public static bool ExtractFixer(string zipPath, string root, Action<string> log)
+        {
+            bool ok = false;
+            using (ZipArchive za = ZipFile.OpenRead(zipPath))
+            {
+                foreach (ZipArchiveEntry e in za.Entries)
+                {
+                    string full = e.FullName.Replace('\\', '/');
+                    if (full.EndsWith("/")) continue;
+                    string name = Path.GetFileName(full);
+                    if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!IsFixer(name)) continue;
+                    string target = Path.Combine(root, Cfg.FixerName);
+                    e.ExtractToFile(target, true);
+                    Trace.Write("已写入 " + target);
+                    if (log != null) log("已写入：" + target);
+                    ok = true;
                 }
             }
             return ok;
@@ -395,7 +442,7 @@ namespace VocalAid.Setup
             root.Children.Add(_autoRun);
 
             _bt = new CheckBox();
-            _bt.Content = "同时下载蓝牙延迟修正器（蓝牙耳机延迟校准，可选）";
+            _bt.Content = "同时下载蓝牙延迟修正器（可选，约 37 MB，网络慢时耗时较长）";
             _bt.IsChecked = false;
             _bt.FontSize = 12;
             _bt.Foreground = B("#1F2328");
@@ -494,8 +541,36 @@ namespace VocalAid.Setup
                     }, delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
 
                     Dispatcher.BeginInvoke(new Action(delegate { _bar.Value = 85; Note("下载完成，正在解压安装…"); }));
-                    bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); }, _bt.IsChecked == true);
+                    bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
                     if (!ok) throw new Exception("压缩包里没找到程序文件");
+
+                    if (_bt.IsChecked == true)
+                    {
+                        Dispatcher.BeginInvoke(new Action(delegate { Note("正在下载蓝牙延迟修正器（约 37 MB）…"); }));
+                        string fz = null;
+                        try
+                        {
+                            fz = Installer.FetchFixer(delegate(long got, long total)
+                            {
+                                Dispatcher.BeginInvoke(new Action(delegate
+                                {
+                                    _bar.Value = total > 0 ? (got * 100.0 / total) : 0;
+                                    _status.Text = "正在下载蓝牙延迟修正器 " + (got / 1024) + " KB" + (total > 0 ? " / " + (total / 1024) + " KB（" + (got * 100 / total) + "%）" : "");
+                                }));
+                            }, delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
+                            bool fok = Installer.ExtractFixer(fz, Cfg.Root(), delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
+                            if (!fok) Note("修正器包内没找到程序，已跳过");
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.Write("修正器下载失败：" + ex.Message);
+                            Dispatcher.BeginInvoke(new Action(delegate { Note("修正器下载失败，主程序已正常安装"); }));
+                        }
+                        finally
+                        {
+                            try { if (fz != null && File.Exists(fz)) File.Delete(fz); } catch { }
+                        }
+                    }
 
                     Dispatcher.BeginInvoke(new Action(delegate { _bar.Value = 92; Note("正在创建桌面快捷方式…"); }));
                     Installer.Shortcuts();
@@ -542,7 +617,14 @@ namespace VocalAid.Setup
             if (args.Length > 0 && args[0] == "--auto")
             {
                 string zip = Installer.FetchZip(null, delegate(string s) { Trace.Write(s); });
-                bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Trace.Write(s); }, Environment.GetEnvironmentVariable("VOCALAID_BT") == "1");
+                bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Trace.Write(s); });
+                try { if (File.Exists(zip)) File.Delete(zip); } catch { }
+                if (Environment.GetEnvironmentVariable("VOCALAID_BT") == "1")
+                {
+                    string fz = Installer.FetchFixer(null, delegate(string s) { Trace.Write(s); });
+                    Installer.ExtractFixer(fz, Cfg.Root(), delegate(string s) { Trace.Write(s); });
+                    try { if (File.Exists(fz)) File.Delete(fz); } catch { }
+                }
                 Installer.Shortcuts();
                 Trace.Write("完成 ok=" + ok + " 目录=" + Cfg.Root());
                 Environment.Exit(0);
