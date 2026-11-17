@@ -14,7 +14,7 @@ namespace VocalAid.Setup
 {
     public static class Cfg
     {
-        public const string Version = "1.2.0";
+        public const string Version = "1.0.1";
         public const string AppName = "说唱主播助手";
         public static readonly string[] Mirrors = new string[]
         {
@@ -24,6 +24,8 @@ namespace VocalAid.Setup
         };
         public const string FileName = "说唱主播助手.exe";
         public const string SelfName = "说唱主播助手_下载引导.exe";
+        public const string FixerName = "蓝牙延迟修正器.exe";
+        public const string HomeUrl = "https://github.com/tetohi/Vocal-Aid";
 
         public static string Root()
         {
@@ -122,7 +124,14 @@ namespace VocalAid.Setup
             return u + (u.IndexOf("?") < 0 ? "?" : "&") + "nc=" + DateTime.Now.Ticks;
         }
 
-        public static bool Extract(string zipPath, string root, Action<string> log)
+        public static bool IsFixer(string name)
+        {
+            return name.IndexOf("Teto", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.IndexOf("Bluetooth", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.IndexOf("Delay", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        public static bool Extract(string zipPath, string root, Action<string> log, bool includeFixer)
         {
             bool ok = false;
             using (ZipArchive za = ZipFile.OpenRead(zipPath))
@@ -137,7 +146,15 @@ namespace VocalAid.Setup
                     if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                     {
                         if (name.IndexOf("Pro", StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                        target = Path.Combine(root, Cfg.FileName);
+                        if (IsFixer(name))
+                        {
+                            if (!includeFixer) { Trace.Write("跳过可选组件：" + name); continue; }
+                            target = Path.Combine(root, Cfg.FixerName);
+                        }
+                        else
+                        {
+                            target = Path.Combine(root, Cfg.FileName);
+                        }
                     }
                     else if (name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
                     {
@@ -201,6 +218,7 @@ namespace VocalAid.Setup
         private Button _main;
         private TextBlock _state;
         private CheckBox _autoRun;
+        private CheckBox _bt;
 
         public Win()
         {
@@ -358,6 +376,13 @@ namespace VocalAid.Setup
                 Note("桌面快捷方式已创建");
             };
             btns.Children.Add(relink);
+
+            Button home = new Button();
+            home.Content = "打开项目主页";
+            StyleBtn(home, false, 118);
+            home.Margin = new Thickness(10, 0, 0, 0);
+            home.Click += delegate { try { Process.Start(Cfg.HomeUrl); } catch { } };
+            btns.Children.Add(home);
             root.Children.Add(btns);
 
             _autoRun = new CheckBox();
@@ -368,6 +393,15 @@ namespace VocalAid.Setup
             _autoRun.Margin = new Thickness(2, 12, 0, 0);
             _autoRun.Cursor = System.Windows.Input.Cursors.Hand;
             root.Children.Add(_autoRun);
+
+            _bt = new CheckBox();
+            _bt.Content = "同时下载蓝牙延迟修正器（蓝牙耳机延迟校准，可选）";
+            _bt.IsChecked = false;
+            _bt.FontSize = 12;
+            _bt.Foreground = B("#1F2328");
+            _bt.Margin = new Thickness(2, 8, 0, 0);
+            _bt.Cursor = System.Windows.Input.Cursors.Hand;
+            root.Children.Add(_bt);
 
             _log = new TextBox();
             _log.IsReadOnly = true;
@@ -460,7 +494,7 @@ namespace VocalAid.Setup
                     }, delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
 
                     Dispatcher.BeginInvoke(new Action(delegate { _bar.Value = 85; Note("下载完成，正在解压安装…"); }));
-                    bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); });
+                    bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Dispatcher.BeginInvoke(new Action(delegate { Note(s); })); }, _bt.IsChecked == true);
                     if (!ok) throw new Exception("压缩包里没找到程序文件");
 
                     Dispatcher.BeginInvoke(new Action(delegate { _bar.Value = 92; Note("正在创建桌面快捷方式…"); }));
@@ -508,7 +542,7 @@ namespace VocalAid.Setup
             if (args.Length > 0 && args[0] == "--auto")
             {
                 string zip = Installer.FetchZip(null, delegate(string s) { Trace.Write(s); });
-                bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Trace.Write(s); });
+                bool ok = Installer.Extract(zip, Cfg.Root(), delegate(string s) { Trace.Write(s); }, Environment.GetEnvironmentVariable("VOCALAID_BT") == "1");
                 Installer.Shortcuts();
                 Trace.Write("完成 ok=" + ok + " 目录=" + Cfg.Root());
                 Environment.Exit(0);
